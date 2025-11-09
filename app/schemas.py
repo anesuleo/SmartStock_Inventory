@@ -7,6 +7,7 @@ from datetime import date
 DrugNameStr     = Annotated[str, StringConstraints(min_length=1, max_length=255)]
 ManufacturerStr = Annotated[str, StringConstraints(min_length=1, max_length=255)]
 UnitStr         = Annotated[str, StringConstraints(min_length=1, max_length=50)]
+BarcodeStr = Annotated[str, StringConstraints(min_length=1, max_length=64)]
 PriceFloat      = Annotated[float, Ge(0.0)]
 StockInt        = Annotated[int, Ge(0)]
 
@@ -19,6 +20,7 @@ class InventoryCreate(BaseModel):
     stock_quantity: StockInt
     stocked_date: date
     expiry_date: date
+    barcode: BarcodeStr
 
 
 class InventoryRead(BaseModel):
@@ -31,6 +33,7 @@ class InventoryRead(BaseModel):
     stock_quantity: StockInt
     stocked_date: date
     expiry_date: date
+    barcode: BarcodeStr 
 
 
 class InventoryPatch(BaseModel):
@@ -41,3 +44,4 @@ class InventoryPatch(BaseModel):
     stock_quantity: Optional[StockInt] = None
     stocked_date: Optional[date] = None
     expiry_date: Optional[date] = None
+    barcode: Optional[BarcodeStr] = None

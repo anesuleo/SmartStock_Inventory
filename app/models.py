@@ -20,4 +20,4 @@ class InventoryDB(Base):
     stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     stocked_date: Mapped[str] = mapped_column(Date, nullable=False)
     expiry_date: Mapped[str] = mapped_column(Date, nullable=False)
-
+    barcode: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
