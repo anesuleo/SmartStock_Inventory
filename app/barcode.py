@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial('COM6', 9600, timeout=1)
+ser = serial.Serial('COM9', 9600, timeout=1)
 
 print("Waiting for scans...")
 
