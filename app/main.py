@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -87,3 +87,16 @@ def delete_inventory(item_id: int, db: Session = Depends(get_db)):
     db.delete(record)
     db.commit()
     return None
+
+@app.post("/api/inventory/scan", response_model=InventoryRead)
+async def scan_barcode(request: Request, db: Session = Depends(get_db)):
+    payload = await request.json()
+    barcode = payload.get("barcode")
+    if not barcode:
+        raise HTTPException(status_code=400, detail="Barcode not provided")
+
+    item = db.query(InventoryDB).filter(InventoryDB.barcode == barcode).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    return item
