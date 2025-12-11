@@ -10,3 +10,4 @@ psycopg2-binary>=2.9,<3       # PostgreSQL driver (like MySQL Connector/J)
 python-dotenv>=1,<2           # Environment variable loader (.env)
 pyserial
 requests
+psycopg[binary]>=3.1

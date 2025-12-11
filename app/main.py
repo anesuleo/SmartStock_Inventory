@@ -1,3 +1,8 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.database import engine
+from app.models import Base
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -7,8 +12,20 @@ from .database import get_db, engine
 from .models import Base, InventoryDB
 from .schemas import InventoryCreate, InventoryRead, InventoryPatch
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
 # Define FastAPI app
-app = FastAPI(title="Inventory Microservice")
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # dev-friendly; tighten in prod
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create all tables and ensures the DB is initialized
 Base.metadata.create_all(bind=engine)
