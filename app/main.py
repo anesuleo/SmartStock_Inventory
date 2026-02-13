@@ -7,6 +7,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from datetime import date
 
 from .database import get_db, engine
 from .models import Base, InventoryDB
@@ -22,13 +23,10 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # dev-friendly; tighten in prod
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Create all tables and ensures the DB is initialized
-Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health")
@@ -117,3 +115,24 @@ async def scan_barcode(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Item not found")
 
     return item
+
+@app.post("/api/inventory/{item_id}/sell", response_model=InventoryRead, status_code=202)
+def sell_inventory(item_id: int, quantity: int = 1, sold_date: date | None = None, db: Session = Depends(get_db)):
+    record = db.get(InventoryDB, item_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    if quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be >= 1")
+
+    if record.stock_quantity < quantity:
+        raise HTTPException(status_code=400, detail="Not enough stock")
+
+    record.stock_quantity -= quantity
+
+    # mark the date whenever a sale happens
+    record.sold_date = sold_date or date.today()
+
+    db.commit()
+    db.refresh(record)
+    return record
