@@ -20,6 +20,7 @@ class InventoryCreate(BaseModel):
     stock_quantity: StockInt
     stocked_date: date
     expiry_date: date
+    sold_date: Optional[date] = None
     barcode: BarcodeStr
 
 
@@ -33,6 +34,7 @@ class InventoryRead(BaseModel):
     stock_quantity: StockInt
     stocked_date: date
     expiry_date: date
+    sold_date: Optional[date] = None
     barcode: BarcodeStr 
 
 
@@ -44,4 +46,5 @@ class InventoryPatch(BaseModel):
     stock_quantity: Optional[StockInt] = None
     stocked_date: Optional[date] = None
     expiry_date: Optional[date] = None
+    sold_date: Optional[date] = None
     barcode: Optional[BarcodeStr] = None
