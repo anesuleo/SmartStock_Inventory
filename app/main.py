@@ -10,8 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from datetime import date
 
 from .database import get_db, engine
-from .models import Base, InventoryDB
-from .schemas import InventoryCreate, InventoryRead, InventoryPatch
+from .models import Base, InventoryDB, SaleDB
+from .schemas import InventoryCreate, InventoryRead, InventoryPatch, SaleCreate, SaleRead
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -116,23 +116,24 @@ async def scan_barcode(request: Request, db: Session = Depends(get_db)):
 
     return item
 
-@app.post("/api/inventory/{item_id}/sell", response_model=InventoryRead, status_code=202)
-def sell_inventory(item_id: int, quantity: int = 1, sold_date: date | None = None, db: Session = Depends(get_db)):
+@app.post("/api/inventory/{item_id}/sell", response_model=SaleRead, status_code=201)
+def sell_inventory(item_id: int, payload: SaleCreate, db: Session = Depends(get_db)):
     record = db.get(InventoryDB, item_id)
     if not record:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    if quantity <= 0:
-        raise HTTPException(status_code=400, detail="Quantity must be >= 1")
-
-    if record.stock_quantity < quantity:
+    if record.stock_quantity < payload.quantity:
         raise HTTPException(status_code=400, detail="Not enough stock")
 
-    record.stock_quantity -= quantity
+    record.stock_quantity -= payload.quantity
 
-    # mark the date whenever a sale happens
-    record.sold_date = sold_date or date.today()
+    sale = SaleDB(
+        inventory_id=item_id,
+        quantity=payload.quantity,
+        sold_date=payload.sold_date or date.today()
+    )
 
+    db.add(sale)
     db.commit()
-    db.refresh(record)
-    return record
+    db.refresh(sale)
+    return sale

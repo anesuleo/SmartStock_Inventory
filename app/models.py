@@ -1,6 +1,7 @@
 from datetime import date
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Float, Date
+from sqlalchemy import String, Integer, Float, Date, ForeignKey
+from sqlalchemy.orm import relationship
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
@@ -24,7 +25,16 @@ class InventoryDB(Base):
     stocked_date: Mapped[date] = mapped_column(Date, nullable=False)   # received/stocked
     expiry_date: Mapped[date] = mapped_column(Date, nullable=False)
 
-    # Forecasting-critical: when the item was sold (nullable until sold)
-    sold_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-
     barcode: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+
+    sales: Mapped[list["SaleDB"]] = relationship(back_populates="inventory", cascade="all, delete-orphan")
+
+class SaleDB(Base):
+    __tablename__ = "sales"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    inventory_id: Mapped[int] = mapped_column(ForeignKey("inventory.id"), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    sold_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    inventory: Mapped["InventoryDB"] = relationship(back_populates="sales")
