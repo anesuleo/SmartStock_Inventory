@@ -20,7 +20,6 @@ class InventoryCreate(BaseModel):
     stock_quantity: StockInt
     stocked_date: date
     expiry_date: date
-    sold_date: Optional[date] = None
     barcode: BarcodeStr
 
 
@@ -34,17 +33,26 @@ class InventoryRead(BaseModel):
     stock_quantity: StockInt
     stocked_date: date
     expiry_date: date
-    sold_date: Optional[date] = None
-    barcode: BarcodeStr 
+    barcode: BarcodeStr
 
 
 class InventoryPatch(BaseModel):
     drug_name: Optional[DrugNameStr] = None
     manufacturer: Optional[ManufacturerStr] = None
-    units: Optional[UnitStr] = None  
+    units: Optional[UnitStr] = None
     price: Optional[PriceFloat] = None
     stock_quantity: Optional[StockInt] = None
     stocked_date: Optional[date] = None
     expiry_date: Optional[date] = None
-    sold_date: Optional[date] = None
     barcode: Optional[BarcodeStr] = None
+
+class SaleCreate(BaseModel):
+    quantity: Annotated[int, Ge(1)]
+    sold_date: Optional[date] = None
+
+class SaleRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    inventory_id: int
+    quantity: int
+    sold_date: date
