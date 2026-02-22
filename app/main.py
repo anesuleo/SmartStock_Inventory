@@ -10,8 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from datetime import date
 
 from .database import get_db, engine
-from .models import Base, InventoryDB, SaleDB
-from .schemas import InventoryCreate, InventoryRead, InventoryPatch, SaleCreate, SaleRead
+from .models import Base, InventoryDB, StockMovementDB
+from .schemas import InventoryCreate, InventoryRead, InventoryPatch, StockMovementCreate, StockMovementRead
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,6 +45,17 @@ def create_inventory(item: InventoryCreate, db: Session = Depends(get_db)):
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="Inventory item already exists")
+
+    # log initial stock as an IN movement
+    movement = StockMovementDB(
+        inventory_id=record.id,
+        movement_type="IN",
+        quantity=record.stock_quantity,
+        movement_date=record.stocked_date,
+    )
+    db.add(movement)
+    db.commit()
+
     return record
 
 
@@ -116,24 +127,52 @@ async def scan_barcode(request: Request, db: Session = Depends(get_db)):
 
     return item
 
-@app.post("/api/inventory/{item_id}/sell", response_model=SaleRead, status_code=201)
-def sell_inventory(item_id: int, payload: SaleCreate, db: Session = Depends(get_db)):
+@app.post("/api/inventory/{item_id}/movement", response_model=StockMovementRead, status_code=201)
+def add_movement(item_id: int, payload: StockMovementCreate, db: Session = Depends(get_db)):
     record = db.get(InventoryDB, item_id)
     if not record:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    if record.stock_quantity < payload.quantity:
-        raise HTTPException(status_code=400, detail="Not enough stock")
+    mdate = payload.movement_date or date.today()
 
-    record.stock_quantity -= payload.quantity
+    if payload.movement_type == "IN":
+        record.stock_quantity += payload.quantity
+    elif payload.movement_type == "OUT":
+        if record.stock_quantity < payload.quantity:
+            raise HTTPException(status_code=400, detail="Not enough stock")
+        record.stock_quantity -= payload.quantity
+    else:
+        raise HTTPException(status_code=400, detail="movement_type must be IN or OUT")
 
-    sale = SaleDB(
+    movement = StockMovementDB(
         inventory_id=item_id,
+        movement_type=payload.movement_type,
         quantity=payload.quantity,
-        sold_date=payload.sold_date or date.today()
+        movement_date=mdate,
     )
 
-    db.add(sale)
+    db.add(movement)
     db.commit()
-    db.refresh(sale)
-    return sale
+    db.refresh(movement)
+    return movement
+
+@app.get("/api/sales", response_model=list[StockMovementRead])
+def list_sales(limit: int = 200, offset: int = 0, db: Session = Depends(get_db)):
+    stmt = (
+        select(StockMovementDB)
+        .where(StockMovementDB.movement_type == "OUT")
+        .order_by(StockMovementDB.movement_date.desc(), StockMovementDB.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return db.execute(stmt).scalars().all()
+
+@app.get("/api/movements", response_model=list[StockMovementRead])
+def list_movements(limit: int = 200, offset: int = 0, db: Session = Depends(get_db)):
+    stmt = (
+        select(StockMovementDB)
+        .order_by(StockMovementDB.movement_date.desc(), StockMovementDB.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return db.execute(stmt).scalars().all()
