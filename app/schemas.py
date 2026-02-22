@@ -8,6 +8,8 @@ DrugNameStr     = Annotated[str, StringConstraints(min_length=1, max_length=255)
 ManufacturerStr = Annotated[str, StringConstraints(min_length=1, max_length=255)]
 UnitStr         = Annotated[str, StringConstraints(min_length=1, max_length=50)]
 BarcodeStr = Annotated[str, StringConstraints(min_length=1, max_length=64)]
+MovementTypeStr = Annotated[str, StringConstraints(pattern=r"^(IN|OUT)$")]
+MovementQtyInt = Annotated[int, Ge(1)]
 PriceFloat      = Annotated[float, Ge(0.0)]
 StockInt        = Annotated[int, Ge(0)]
 
@@ -22,7 +24,6 @@ class InventoryCreate(BaseModel):
     expiry_date: date
     barcode: BarcodeStr
 
-
 class InventoryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -35,7 +36,6 @@ class InventoryRead(BaseModel):
     expiry_date: date
     barcode: BarcodeStr
 
-
 class InventoryPatch(BaseModel):
     drug_name: Optional[DrugNameStr] = None
     manufacturer: Optional[ManufacturerStr] = None
@@ -46,13 +46,17 @@ class InventoryPatch(BaseModel):
     expiry_date: Optional[date] = None
     barcode: Optional[BarcodeStr] = None
 
-class SaleCreate(BaseModel):
-    quantity: Annotated[int, Ge(1)]
-    sold_date: Optional[date] = None
+# ---------- Stock Movement ----------
+class StockMovementCreate(BaseModel):
+    movement_type: MovementTypeStr  # "IN" or "OUT"
+    quantity: MovementQtyInt
+    movement_date: Optional[date] = None
 
-class SaleRead(BaseModel):
+
+class StockMovementRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     inventory_id: int
+    movement_type: str
     quantity: int
-    sold_date: date
+    movement_date: date
