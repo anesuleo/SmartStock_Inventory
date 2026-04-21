@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import date
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -206,11 +207,25 @@ def list_sales(limit: int = 200, offset: int = 0, db: Session = Depends(get_db))
 
 
 @app.get("/api/movements", response_model=list[StockMovementRead])
-def list_movements(limit: int = 200, offset: int = 0, db: Session = Depends(get_db)):
-    """Return all stock movements (both IN and OUT), most recent first."""
-    stmt = (
-        select(StockMovementDB)
-        .order_by(StockMovementDB.movement_date.desc(), StockMovementDB.id.desc())
-        .limit(limit).offset(offset)
-    )
+def list_movements(
+    item_id: Optional[int] = None,
+    limit: int = 200,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Return stock movements, most recent first.
+    Optionally filter by item_id using ?item_id=<id>.
+    """
+    stmt = select(StockMovementDB)
+
+    # Filter by item if provided — avoids fetching all movements unnecessarily
+    if item_id is not None:
+        stmt = stmt.where(StockMovementDB.inventory_id == item_id)
+
+    stmt = stmt.order_by(
+        StockMovementDB.movement_date.desc(),
+        StockMovementDB.id.desc()
+    ).limit(limit).offset(offset)
+
     return db.execute(stmt).scalars().all()
