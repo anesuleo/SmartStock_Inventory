@@ -48,3 +48,5 @@ class StockMovementDB(Base):
     movement_date: Mapped[date] = mapped_column(Date, nullable=False)
 
     inventory: Mapped["InventoryDB"] = relationship(back_populates="movements")
+
+    
