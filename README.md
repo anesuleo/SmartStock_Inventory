@@ -75,3 +75,5 @@ docker compose up --build
 | [SmartStock_Frontend](https://github.com/anesuleo/SmartStock_Frontend) | Desktop GUI built with CustomTkinter |
 | [SmartStock_Authentication](https://github.com/anesuleo/SmartStock_Authentication) | Session-based authentication service |
 | [SmartStock_Forecasting](https://github.com/anesuleo/SmartStock_Forecasting) | Demand forecasting and stockout risk prediction |
+| [SmartStock_Deployment](https://github.com/anesuleo/SmartStock_Deployment) | Backend Deployment repository |
+
